@@ -10,7 +10,7 @@ use
  * @author    Nazar Mokrynskyi <nazar@mokrynskyi.com>
  * @copyright Copyright (c) 2014-2017, Nazar Mokrynskyi
  * @license   http://opensource.org/licenses/MIT
- * @version   0.9
+ * @version   0.9 + weeks
  */
 class Just_backup_btrfs {
 	/**
@@ -63,7 +63,7 @@ class Just_backup_btrfs {
 			return;
 		}
 
-		list($keep_year, $keep_month, $keep_day, $keep_hour) = $this->how_long_to_keep($history_db, $config['keep_snapshots']);
+		list($keep_year, $keep_month, $keep_week, $keep_day, $keep_hour) = $this->how_long_to_keep($history_db, $config['keep_snapshots']);
 		if (!$keep_hour) {
 			return;
 		}
@@ -78,6 +78,7 @@ class Just_backup_btrfs {
 				`date`,
 				`keep_hour`,
 				`keep_day`,
+				`keep_week`,
 				`keep_month`,
 				`keep_year`
 			) VALUES (
@@ -86,6 +87,7 @@ class Just_backup_btrfs {
 				'$date',
 				'$keep_hour',
 				'$keep_day',
+				'$keep_week',
 				'$keep_month',
 				'$keep_year'
 			)"
@@ -146,6 +148,7 @@ class Just_backup_btrfs {
 				`date` INTEGER,
 				`keep_hour` INTEGER,
 				`keep_day` INTEGER,
+				`keep_week` INTEGER,
 				`keep_month` INTEGER,
 				`keep_year` INTEGER
 			)"
@@ -173,7 +176,7 @@ class Just_backup_btrfs {
 		}
 
 		$common_snapshot = $this->get_last_common_snapshot($history_db, $history_db_external, $destination, $destination_external);
-		list($keep_year, $keep_month, $keep_day, $keep_hour) = $this->how_long_to_keep(
+		list($keep_year, $keep_month, $keep_week, $keep_day, $keep_hour) = $this->how_long_to_keep(
 			$history_db_external,
 			@$config['keep_other_snapshots'] ?: $config['keep_snapshots']
 		);
@@ -188,6 +191,7 @@ class Just_backup_btrfs {
 					`date`,
 					`keep_hour`,
 					`keep_day`,
+					`keep_week`,
 					`keep_month`,
 					`keep_year`
 				) VALUES (
@@ -196,6 +200,7 @@ class Just_backup_btrfs {
 					'$date',
 					'$keep_hour',
 					'$keep_day',
+					'$keep_week',
 					'$keep_month',
 					'$keep_year'
 				)"
@@ -349,6 +354,7 @@ class Just_backup_btrfs {
 		return [
 			$keep_year = $this->keep_or_not($history_db, $keep_snapshots['year'], 'year'),
 			$keep_month = $keep_year ? 1 : $this->keep_or_not($history_db, $keep_snapshots['month'], 'month'),
+			$keep_week = $keep_month ? 1 : $this->keep_or_not($history_db, $keep_snapshots['week'], 'week'),
 			$keep_day = $keep_month ? 1 : $this->keep_or_not($history_db, $keep_snapshots['day'], 'day'),
 			$keep_hour = $keep_day ? 1 : $this->keep_or_not($history_db, $keep_snapshots['hour'], 'hour')
 		];
@@ -370,6 +376,7 @@ class Just_backup_btrfs {
 		$condition = [
 			'`keep_year` = 1',
 			'`keep_month` = 1',
+			'`keep_week` = 1',
 			'`keep_day` = 1',
 			'`keep_hour` = 1'
 		];
@@ -381,7 +388,10 @@ class Just_backup_btrfs {
 				$offset *= 365 / 30; // We divide by 30 because of next condition which represents days as well
 				array_pop($condition);
 			case 'month':
-				$offset *= 30;
+				$offset *= 30/7;
+				array_pop($condition);
+			case 'week':
+				$offset *= 7;
 				array_pop($condition);
 			case 'day':
 				$offset *= 24;
@@ -431,6 +441,7 @@ class Just_backup_btrfs {
 		$date                  = time();
 		$hour_ago              = 3600;
 		$day_ago               = $hour_ago * 24;
+		$week_ago              = $day_ago * 7;
 		$month_ago             = $day_ago * 30;
 		$snapshots             = $history_db->query(
 			"SELECT `snapshot_name`
@@ -441,8 +452,12 @@ class Just_backup_btrfs {
 					`date`		< ($date - $hour_ago)
 				) OR
 				(
+					`keep_week`	= 0 AND
+					`date`		< ($date - $day_ago)
+				) OR
+				(
 					`keep_month`	= 0 AND
-					`date`			< ($date - $day_ago)
+					`date`			< ($date - $week_ago)
 				) OR
 				(
 					`keep_year`	= 0 AND

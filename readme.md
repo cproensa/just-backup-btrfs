@@ -137,6 +137,7 @@ Configuration options are especially made self-explanatory:
 		"keep_snapshots"               : {
 			"hour"  : 60,
 			"day"   : 24,
+			"week"  : 7,
 			"month" : 30,
 			"year"  : 48
 		}
@@ -150,12 +151,14 @@ Configuration options are especially made self-explanatory:
 		"keep_snapshots"               : {
 			"hour"  : 120,
 			"day"   : 48,
+			"week"  : 14,
 			"month" : 60,
 			"year"  : 96
 		},
 		"keep_other_snapshots"         : {
 			"hour"  : -1,
 			"day"   : 96,
+			"week"  : 28,
 			"month" : 120,
 			"year"  : 192
 		},
@@ -169,7 +172,7 @@ Configuration options are especially made self-explanatory:
 * `destination_within_partition` - string, absolute path, where to store snapshots, should be the same partition as `source_mounted_volume`
 * `destination_other_partition` - string, absolute path (or `null` if not needed), where to store actual backup, expected to be another BTRFS partition
 * `date_format` - string, date format as for PHP [date() function](https://secure.php.net/manual/en/function.date.php)
-* `keep_snapshots` - array with keys `hour`, `day`, `month` and `year`, each key contains number of snapshots that must be kept within corresponding time interval (`-1` means unlimited)
+* `keep_snapshots` - array with keys `hour`, `day`, `week`, `month` and `year`, each key contains number of snapshots that must be kept within corresponding time interval (`-1` means unlimited)
 * `keep_other_snapshots` - the same as `keep_snapshots`, but for backups, `keep_snapshots` by default
 * `optimize_mounts` - allows to avoid constant remounting root during external backups since it might be slow; `true` by default, might be disabled if necessary
 * `minimum_delete_count` - minimum number of snapshots to remove, is used to decrease fragmentation and thus improve performance, `1` by default
